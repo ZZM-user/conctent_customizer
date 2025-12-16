@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>内容定制器 - 规则管理</title>
+    <link rel="stylesheet" href="styles/options.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="header">
+        <div>
+          <h1>内容定制器</h1>
+          <p>针对特定 URL 管理文本和图片替换规则。</p>
+        </div>
+        <div class="io-controls">
+          <button id="export-rules" type="button">导出 JSON</button>
+          <button id="import-rules" type="button">导入 JSON</button>
+          <input id="import-input" type="file" accept="application/json" hidden />
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>规则列表</h2>
+            <span id="rule-count" class="muted"></span>
+          </div>
+          <div id="rules-empty" class="empty-state">
+            <p>暂无规则，请使用右侧表单创建。</p>
+          </div>
+          <table id="rules-table" class="rule-table" aria-label="规则列表">
+            <thead>
+              <tr>
+                <th>名称</th>
+                <th>模式</th>
+                <th>方式</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="rules-table-body"></tbody>
+          </table>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 id="form-title">创建规则</h2>
+            <button id="cancel-edit" type="button" class="link-button" hidden>
+              取消编辑
+            </button>
+          </div>
+          <form id="rule-form">
+            <label>
+              规则名称
+              <input type="text" id="rule-name" required placeholder="例如：产品详情页微调" />
+            </label>
+
+            <label>
+              URL 模式
+              <input
+                type="text"
+                id="rule-pattern"
+                required
+                placeholder="https://example.com/*"
+              />
+            </label>
+
+            <label>
+              匹配方式
+              <select id="rule-match-type">
+                <option value="exact">精确匹配</option>
+                <option value="contains">包含路径</option>
+                <option value="wildcard" selected>通配符（* 任意字符）</option>
+                <option value="regex">正则表达式</option>
+              </select>
+            </label>
+
+            <label class="checkbox">
+              <input type="checkbox" id="rule-enabled" checked />
+              启用此规则
+            </label>
+
+            <label class="checkbox">
+              <input type="checkbox" id="rule-ignore-case" checked />
+              忽略 URL 匹配大小写
+            </label>
+
+            <fieldset>
+              <legend>文本替换</legend>
+              <div id="text-replacements" class="replacement-list"></div>
+              <button id="add-text-replacement" type="button" class="secondary">
+                + 添加文本替换
+              </button>
+            </fieldset>
+
+            <fieldset>
+              <legend>图片替换</legend>
+              <div id="image-replacements" class="replacement-list"></div>
+              <button id="add-image-replacement" type="button" class="secondary">
+                + 添加图片替换
+              </button>
+            </fieldset>
+
+            <div class="form-actions">
+              <button type="submit" class="primary">保存规则</button>
+            </div>
+          </form>
+        </section>
+      </main>
+
+      <output id="status" role="status" class="status" aria-live="polite"></output>
+    </div>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>
