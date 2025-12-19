@@ -309,6 +309,37 @@ const gatherReplacements = (container, fields, requiredField) =>
     []
   );
 
+const resetForm = () => {
+  form.reset();
+  state.editingId = null;
+  formTitle.textContent = "创建规则";
+  resetReplacementLists();
+  cssRulesTextarea.value = "";
+  ensurePatternValid();
+  ignoreCaseInput.checked = true;
+  preloadModeInput.value = "hide"; // 默认设为推荐的隐藏模式
+};
+
+const applyPrefillFromQuery = () => {
+  const params = new URLSearchParams(window.location.search);
+  const createFor = params.get("createFor");
+  if (!createFor) {
+    return;
+  }
+
+  resetForm();
+  openDetailPanel();
+  const decoded = decodeURIComponent(createFor);
+  patternInput.value = decoded;
+  matchTypeInput.value = "exact";
+  try {
+    const parsed = new URL(decoded);
+    nameInput.value = `针对 ${parsed.hostname} 的规则`;
+  } catch {
+    nameInput.value = `针对 ${decoded} 的规则`;
+  }
+};
+
 const loadIntoForm = (rule) => {
   formTitle.textContent = "编辑规则";
   state.editingId = rule.id;
@@ -343,108 +374,6 @@ const loadIntoForm = (rule) => {
     if (advancedSettings) {
       advancedSettings.open = true;
     }
-  }
-};
-
-const resetForm = () => {
-  form.reset();
-  state.editingId = null;
-  formTitle.textContent = "创建规则";
-  resetReplacementLists();
-  cssRulesTextarea.value = "";
-  ensurePatternValid();
-  ignoreCaseInput.checked = true;
-  preloadModeInput.value = "hide"; // 默认设为推荐的隐藏模式
-};
-
-const renderRuleTable = () => {
-  ruleTableBody.innerHTML = "";
-
-  state.rules.forEach((rule) => {
-    const row = document.createElement("tr");
-
-    const nameCell = document.createElement("td");
-    nameCell.textContent = rule.name || "未命名规则";
-
-    const patternCell = document.createElement("td");
-    patternCell.textContent = rule.urlPattern || "";
-
-    const matchCell = document.createElement("td");
-    matchCell.textContent = MATCH_TYPE_LABELS[rule.matchType] || rule.matchType;
-
-    const statusCell = document.createElement("td");
-    const statusChip = document.createElement("span");
-    statusChip.className = `chip ${rule.enabled ? "active" : "disabled"}`;
-    statusChip.textContent = rule.enabled ? "已启用" : "已禁用";
-    statusCell.appendChild(statusChip);
-
-    const actionsCell = document.createElement("td");
-    const editBtn = document.createElement("button");
-    editBtn.textContent = "查看/编辑";
-    editBtn.dataset.action = "edit";
-    editBtn.dataset.id = rule.id;
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "删除";
-    deleteBtn.className = "secondary";
-    deleteBtn.dataset.action = "delete";
-    deleteBtn.dataset.id = rule.id;
-    actionsCell.append(editBtn, deleteBtn);
-
-    row.append(nameCell, patternCell, matchCell, statusCell, actionsCell);
-    ruleTableBody.appendChild(row);
-  });
-
-  emptyStateEl.style.display = state.rules.length ? "none" : "block";
-  ruleCountEl.textContent = `共 ${state.rules.length} 条`;
-};
-
-const handleTableClick = async (event) => {
-  const button = event.target.closest("button[data-action]");
-  if (!button) {
-    return;
-  }
-
-  const ruleId = button.dataset.id;
-  const action = button.dataset.action;
-  const rule = state.rules.find((item) => item.id === ruleId);
-
-  if (!rule) {
-    return;
-  }
-
-  if (action === "edit") {
-    loadIntoForm(rule);
-  } else if (action === "delete") {
-    if (confirm("确定要删除该规则吗？")) {
-      state.rules = state.rules.filter((item) => item.id !== ruleId);
-      await persistRules();
-      renderRuleTable();
-      setStatus("规则已删除。");
-      if (state.editingId === ruleId) {
-        resetForm();
-        closeDetailPanel();
-      }
-    }
-  }
-};
-
-const applyPrefillFromQuery = () => {
-  const params = new URLSearchParams(window.location.search);
-  const createFor = params.get("createFor");
-  if (!createFor) {
-    return;
-  }
-
-  resetForm();
-  openDetailPanel();
-  const decoded = decodeURIComponent(createFor);
-  patternInput.value = decoded;
-  matchTypeInput.value = "exact";
-  try {
-    const parsed = new URL(decoded);
-    nameInput.value = `针对 ${parsed.hostname} 的规则`;
-  } catch {
-    nameInput.value = `针对 ${decoded} 的规则`;
   }
 };
 
