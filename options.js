@@ -495,6 +495,77 @@ const handleImport = async (file) => {
   }
 };
 
+const renderRuleTable = () => {
+  ruleTableBody.innerHTML = "";
+
+  state.rules.forEach((rule) => {
+    const row = document.createElement("tr");
+
+    const nameCell = document.createElement("td");
+    nameCell.textContent = rule.name || "未命名规则";
+
+    const patternCell = document.createElement("td");
+    patternCell.textContent = rule.urlPattern || "";
+
+    const matchCell = document.createElement("td");
+    matchCell.textContent = MATCH_TYPE_LABELS[rule.matchType] || rule.matchType;
+
+    const statusCell = document.createElement("td");
+    const statusChip = document.createElement("span");
+    statusChip.className = `chip ${rule.enabled ? "active" : "disabled"}`;
+    statusChip.textContent = rule.enabled ? "已启用" : "已禁用";
+    statusCell.appendChild(statusChip);
+
+    const actionsCell = document.createElement("td");
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "查看/编辑";
+    editBtn.dataset.action = "edit";
+    editBtn.dataset.id = rule.id;
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "删除";
+    deleteBtn.className = "secondary";
+    deleteBtn.dataset.action = "delete";
+    deleteBtn.dataset.id = rule.id;
+    actionsCell.append(editBtn, deleteBtn);
+
+    row.append(nameCell, patternCell, matchCell, statusCell, actionsCell);
+    ruleTableBody.appendChild(row);
+  });
+
+  emptyStateEl.style.display = state.rules.length ? "none" : "block";
+  ruleCountEl.textContent = `共 ${state.rules.length} 条`;
+};
+
+const handleTableClick = async (event) => {
+  const button = event.target.closest("button[data-action]");
+  if (!button) {
+    return;
+  }
+
+  const ruleId = button.dataset.id;
+  const action = button.dataset.action;
+  const rule = state.rules.find((item) => item.id === ruleId);
+
+  if (!rule) {
+    return;
+  }
+
+  if (action === "edit") {
+    loadIntoForm(rule);
+  } else if (action === "delete") {
+    if (confirm("确定要删除该规则吗？")) {
+      state.rules = state.rules.filter((item) => item.id !== ruleId);
+      await persistRules();
+      renderRuleTable();
+      setStatus("规则已删除。");
+      if (state.editingId === ruleId) {
+        resetForm();
+        closeDetailPanel();
+      }
+    }
+  }
+};
+
 const init = async () => {
   await fetchRules();
   renderRuleTable();
