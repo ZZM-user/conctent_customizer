@@ -15,6 +15,8 @@
         <div class="io-controls">
           <button id="export-rules" type="button">📤 导出规则</button>
           <button id="import-rules" type="button">📥 导入规则</button>
+          <!-- 添加设置按钮 -->
+          <button id="settings-btn" type="button">⚙️ 设置</button>
           <input id="import-input" type="file" accept="application/json" hidden />
         </div>
       </header>
@@ -162,6 +164,36 @@
           </form>
         </section>
       </main>
+
+      <!-- 添加设置弹窗 -->
+      <div id="settings-modal" class="modal" hidden>
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>⚙️ 设置</h2>
+            <button id="close-settings" class="close-button">&times;</button>
+          </div>
+          <div class="modal-body">
+            <fieldset>
+              <legend>数据同步</legend>
+              <label>
+                存储方式
+                <select id="storage-method">
+                  <option value="local">本地存储</option>
+                  <option value="sync">同步存储</option>
+                </select>
+              </label>
+              <p class="muted" style="font-size: 0.85rem; margin-top: 8px;">
+                同步存储可在不同设备间共享规则，但有容量限制
+              </p>
+            </fieldset>
+            
+            <div class="modal-actions">
+              <button id="save-settings" class="primary">保存设置</button>
+              <button id="cancel-settings" class="secondary">取消</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <output id="status" role="status" class="status" aria-live="polite"></output>
     </div>

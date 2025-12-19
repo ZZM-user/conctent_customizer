@@ -23,6 +23,7 @@
 | F03 | 导入 / 导出 | 以 JSON 备份与迁移规则 | ✅ 高 |
 | F04 | 规则折叠面板 | 默认收起详情，只有点击"查看/编辑""新建规则"才展开，保存/取消后自动收起 | ✅ 必须 |
 | F05 | 首屏处理模式 | 规则可配置"隐藏原内容/仅预编译/关闭"三种策略，默认隐藏以防止闪烁 | ✅ 必须 |
+| F13 | 数据同步 | 支持在不同设备间同步规则设置 | ✅ 必须 |
 
 ### 2.2 内容替换定义
 
@@ -49,7 +50,7 @@
 
 | 组件 | 职责 | 说明 |
 | --- | --- | --- |
-| Background Service Worker | 规则 CRUD、存储、消息分发 | 使用 `chrome.storage.local` + runtime messaging |
+| Background Service Worker | 规则 CRUD、存储、消息分发 | 使用 `chrome.storage.local/sync` + runtime messaging |
 | Options Page | 规则管理 UI | 折叠详情 + 表单配置 |
 | Popup | 规则状态概览 | 显示当前页匹配结果、快速开关 |
 | Content Script | 页面重写 | document_start 注入，负责文本/图片/属性/背景替换 |
@@ -63,6 +64,7 @@
 | **批量替换** | 减少 reflow | `TreeWalker` 扫描文本，只在 `requestAnimationFrame` 中写 DOM；MutationObserver 100ms 去抖 |
 | **属性/背景覆盖** | 覆盖更多展示元素 | placeholder/title/aria/value/textContent 默认替换；解析 inline `style.background(-image)` 并替换 url |
 | **恢复机制** | 保持稳定性 | 使用 `WeakMap` 记录原值，规则禁用或变更时可回滚文本/属性/图片/样式 |
+| **数据同步** | 跨设备一致性 | 支持 `chrome.storage.sync` 存储规则，保持用户在不同设备上的设置一致 |
 
 ---
 
@@ -74,6 +76,7 @@
 4. 首屏隐藏策略不应造成页面长期空白（300ms 兜底必须生效），默认启用隐藏模式。
 5. 规则导入导出保持兼容，包含 `preloadMode`、替换条目等最新字段。
 6. MutationObserver 可处理异步加载内容，不会造成性能瓶颈（检查控制台无报错）。
+7. 数据同步功能能够在不同设备间正确同步规则设置。
 
 ---
 

@@ -65,12 +65,16 @@ const closeDetailPanel = () => {
 };
 
 const fetchRules = async () => {
+  // 注意：规则本身根据设置的存储方式获取，但存储方式设置始终在local中
   const stored = await chrome.storage.local.get({ [RULES_KEY]: [] });
   state.rules = normalizeRules(stored[RULES_KEY]);
   return state.rules;
 };
 
-const persistRules = () => chrome.storage.local.set({ [RULES_KEY]: state.rules });
+const persistRules = async () => {
+  // 直接使用chrome.storage.local，由background script处理存储方式的选择
+  return chrome.storage.local.set({ [RULES_KEY]: state.rules });
+};
 
 const ensurePatternValid = () => {
   const value = matchTypeInput.value;
@@ -573,6 +577,156 @@ const init = async () => {
   closeDetailPanel();
   applyPrefillFromQuery();
 };
+
+// 添加获取当前存储方式的函数
+const getCurrentStorageMethod = async () => {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: "GET_STORAGE_METHOD" }, (response) => {
+      if (response && response.success) {
+        resolve(response.method);
+      } else {
+        // 默认返回local
+        resolve("local");
+      }
+    });
+  });
+};
+
+// 添加更改存储方式的函数
+const changeStorageMethod = async (method) => {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ type: "CHANGE_STORAGE_METHOD", method }, (response) => {
+      if (response && response.success) {
+        resolve();
+      } else {
+        reject(new Error(response?.error || "Failed to change storage method"));
+      }
+    });
+  });
+};
+
+// 添加设置弹窗相关元素
+const settingsModal = document.getElementById('settings-modal');
+const settingsBtn = document.getElementById('settings-btn');
+const closeSettingsBtn = document.getElementById('close-settings');
+const cancelSettingsBtn = document.getElementById('cancel-settings');
+const saveSettingsBtn = document.getElementById('save-settings');
+const storageMethodSelect = document.getElementById('storage-method');
+
+// 打开设置弹窗
+const openSettings = () => {
+  // 检查所有必需的元素是否存在
+  if (!settingsModal || !storageMethodSelect) {
+    console.error('Missing required elements for settings modal');
+    setStatus("设置弹窗元素缺失", true);
+    return;
+  }
+  
+  // 从background获取当前存储方式
+  getCurrentStorageMethod()
+    .then((method) => {
+      storageMethodSelect.value = method;
+      settingsModal.hidden = false;
+      // 确保模态框显示
+      settingsModal.style.display = 'flex';
+    })
+    .catch((error) => {
+      console.error("Failed to get storage method:", error);
+      setStatus("无法获取当前存储设置", true);
+    });
+};
+
+// 关闭设置弹窗
+const closeSettings = () => {
+  if (settingsModal) {
+    settingsModal.hidden = true;
+    // 确保模态框隐藏
+    settingsModal.style.display = 'none';
+  }
+};
+
+// 保存设置
+const saveSettings = async () => {
+  const newMethod = storageMethodSelect.value;
+  try {
+    await changeStorageMethod(newMethod);
+    setStatus(`存储方式已更改为${newMethod === "sync" ? "同步存储" : "本地存储"}`);
+    closeSettings();
+  } catch (error) {
+    console.error("Failed to change storage method:", error);
+    setStatus(`存储方式更改失败: ${error.message}`, true);
+  }
+};
+
+// 事件监听器
+if (settingsBtn) {
+  settingsBtn.addEventListener('click', openSettings);
+  console.log('Settings button event listener added');
+} else {
+  console.warn('Settings button not found');
+}
+
+if (closeSettingsBtn) {
+  closeSettingsBtn.addEventListener('click', closeSettings);
+  console.log('Close settings button event listener added');
+} else {
+  console.warn('Close settings button not found');
+}
+
+if (cancelSettingsBtn) {
+  cancelSettingsBtn.addEventListener('click', closeSettings);
+  console.log('Cancel settings button event listener added');
+} else {
+  console.warn('Cancel settings button not found');
+}
+
+if (saveSettingsBtn) {
+  saveSettingsBtn.addEventListener('click', saveSettings);
+  console.log('Save settings button event listener added');
+} else {
+  console.warn('Save settings button not found');
+}
+
+// 点击模态框背景关闭模态框
+if (settingsModal) {
+  settingsModal.addEventListener('click', (event) => {
+    if (event.target === settingsModal) {
+      closeSettings();
+    }
+  });
+  console.log('Modal background click listener added');
+} else {
+  console.warn('Settings modal not found');
+}
+
+// 确保模态框初始状态是隐藏的
+if (settingsModal) {
+  settingsModal.hidden = true;
+  settingsModal.style.display = 'none';
+}
+
+// ESC键关闭模态框
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && settingsModal && !settingsModal.hidden) {
+    closeSettings();
+  }
+});
+
+// 确保DOM加载完成后初始化模态框状态
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (settingsModal) {
+      settingsModal.hidden = true;
+      settingsModal.style.display = 'none';
+    }
+  });
+} else {
+  // DOM已经加载完成
+  if (settingsModal) {
+    settingsModal.hidden = true;
+    settingsModal.style.display = 'none';
+  }
+}
 
 ruleTableBody.addEventListener("click", handleTableClick);
 form.addEventListener("submit", handleFormSubmit);
