@@ -52,6 +52,7 @@
     attributeSelector: "",
     attributeNameList: [],
     imagePatterns: [],
+    cssRules: [],
     observer: null,
     applyTimer: null,
     shouldHide: false,
@@ -219,6 +220,15 @@
     });
   };
 
+  const buildCssRules = () => {
+    state.cssRules = [];
+    state.activeRules.forEach((rule) => {
+      if (rule.cssRules) {
+        state.cssRules.push(rule.cssRules);
+      }
+    });
+  };
+
   const refreshActiveRules = async () => {
     const { rules = [] } = await chrome.storage.local.get({ rules: [] });
     state.rules = helpers.normalizeRules(rules);
@@ -231,6 +241,7 @@
     );
     buildTextPatterns();
     buildImagePatterns();
+    buildCssRules();
   };
 
   const restoreTextNodes = () => {
@@ -541,6 +552,31 @@
     });
   };
 
+  const applyStyleReplacements = () => {
+    // 移除之前应用的样式
+    const existingStyles = document.head.querySelector('style[data-content-customizer-styles]');
+    if (existingStyles) {
+      existingStyles.remove();
+    }
+
+    // 如果没有样式规则，则直接返回
+    if (!state.cssRules.length) {
+      return;
+    }
+
+    // 创建新的样式元素
+    const styleElement = document.createElement('style');
+    styleElement.setAttribute('data-content-customizer-styles', '');
+    
+    let cssText = '';
+    state.cssRules.forEach(rule => {
+      cssText += `\n${rule}\n`;
+    });
+    
+    styleElement.textContent = cssText;
+    document.head.appendChild(styleElement);
+  };
+
   const applyAll = () => {
     if (!document.body) {
       return;
@@ -557,6 +593,7 @@
     applyTextReplacements(document.body);
     applyImageReplacements(document.body);
     applyAttributeReplacements(document.body);
+    applyStyleReplacements(); // 应用样式替换
     removeBodyHider();
   };
 

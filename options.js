@@ -29,6 +29,7 @@ const preloadModeInput = document.getElementById("rule-preload-mode");
 const enabledInput = document.getElementById("rule-enabled");
 const textReplacementList = document.getElementById("text-replacements");
 const imageReplacementList = document.getElementById("image-replacements");
+const cssRulesTextarea = document.getElementById("css-rules");
 const addTextBtn = document.getElementById("add-text-replacement");
 const addImageBtn = document.getElementById("add-image-replacement");
 const exportBtn = document.getElementById("export-rules");
@@ -155,6 +156,23 @@ const createReplacementRow = (type, entry = {}) => {
       )
     );
     fields.appendChild(makeToggleRow(normalizedEntry, ["useRegex", "caseSensitive"]));
+  } else if (type === "style") {
+    fields.appendChild(
+      makeInput(
+        "CSS 选择器",
+        normalizedEntry.selector ?? "",
+        "selector",
+        ".card"
+      )
+    );
+    fields.appendChild(
+      makeTextarea(
+        "样式规则",
+        normalizedEntry.styles ?? "",
+        "styles",
+        "background: red;\nborder: 1px solid blue;"
+      )
+    );
   } else {
     fields.appendChild(
       makeInput(
@@ -194,6 +212,18 @@ const makeInput = (labelText, value, field, placeholder) => {
   input.placeholder = placeholder;
   input.dataset.field = field;
   wrapper.appendChild(input);
+  return wrapper;
+};
+
+const makeTextarea = (labelText, value, field, placeholder) => {
+  const wrapper = document.createElement("label");
+  wrapper.textContent = labelText;
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.placeholder = placeholder;
+  textarea.rows = 4;
+  textarea.dataset.field = field;
+  wrapper.appendChild(textarea);
   return wrapper;
 };
 
@@ -240,6 +270,7 @@ const addImageRow = (entry = {}) => {
 const resetReplacementLists = () => {
   textReplacementList.innerHTML = "";
   imageReplacementList.innerHTML = "";
+  cssRulesTextarea.value = "";
   addTextRow();
   addImageRow();
 };
@@ -294,6 +325,8 @@ const loadIntoForm = (rule) => {
 
   textReplacementList.innerHTML = "";
   imageReplacementList.innerHTML = "";
+  cssRulesTextarea.value = rule.cssRules ?? "";
+  
   rule.textReplacements.forEach((entry) => addTextRow(entry));
   rule.imageReplacements.forEach((entry) => addImageRow(entry));
 
@@ -310,6 +343,7 @@ const resetForm = () => {
   state.editingId = null;
   formTitle.textContent = "创建规则";
   resetReplacementLists();
+  cssRulesTextarea.value = "";
   ensurePatternValid();
   ignoreCaseInput.checked = true;
   preloadModeInput.value = "hide";
@@ -449,6 +483,8 @@ const handleFormSubmit = async (event) => {
     }
   }
 
+  const cssRules = cssRulesTextarea.value.trim();
+
   const nextRule = sanitizeRule({
     id: state.editingId ?? createRuleId(),
     name: nameInput.value.trim(),
@@ -458,7 +494,8 @@ const handleFormSubmit = async (event) => {
     ignoreCase: ignoreCaseInput.checked,
     preloadMode: preloadModeInput.value,
     textReplacements: textEntries,
-    imageReplacements: imageEntries
+    imageReplacements: imageEntries,
+    cssRules: cssRules
   });
 
   const existingIndex = state.rules.findIndex((rule) => rule.id === nextRule.id);

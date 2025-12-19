@@ -9,7 +9,8 @@ const defaultRuleShape = {
   ignoreCase: true,
   preloadMode: "hide",
   textReplacements: [],
-  imageReplacements: []
+  imageReplacements: [],
+  cssRules: ""
 };
 
 const escapeRegex = (value = "") =>
