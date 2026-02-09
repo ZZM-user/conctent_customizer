@@ -30,6 +30,18 @@
             </div>
             <button id="open-create" type="button" class="primary">+ 新建规则</button>
           </div>
+          <div class="rule-toolbar">
+            <input
+              id="rule-search"
+              type="search"
+              placeholder="搜索规则名称 / URL 模式"
+              autocomplete="off"
+              aria-label="搜索规则"
+            />
+            <button id="clear-rule-search" type="button" class="secondary" hidden>
+              清除
+            </button>
+          </div>
           <div id="rules-empty" class="empty-state">
             <p>暂无规则，请使用右侧表单创建</p>
           </div>

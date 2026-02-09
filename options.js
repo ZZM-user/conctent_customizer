@@ -39,15 +39,53 @@ const statusOutput = document.getElementById("status");
 const openCreateBtn = document.getElementById("open-create");
 const textCountEl = document.getElementById("text-count");
 const imageCountEl = document.getElementById("image-count");
+const ruleSearchInput = document.getElementById("rule-search");
+const clearRuleSearchBtn = document.getElementById("clear-rule-search");
 
 const state = {
   rules: [],
-  editingId: null
+  editingId: null,
+  searchQuery: ""
 };
 
 const setStatus = (message, isError = false) => {
   statusOutput.textContent = message;
   statusOutput.classList.toggle("error", isError);
+};
+
+const normalizeSearchQuery = (query) => (query || "").trim().toLowerCase();
+
+const getRuleSearchText = (rule) => {
+  const parts = [
+    rule?.name ?? "",
+    rule?.urlPattern ?? "",
+    MATCH_TYPE_LABELS[rule?.matchType] ?? rule?.matchType ?? ""
+  ];
+  return parts.join(" ").toLowerCase();
+};
+
+const filterRules = (rules, query) => {
+  const normalized = normalizeSearchQuery(query);
+  if (!normalized) {
+    return rules;
+  }
+
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  if (!tokens.length) {
+    return rules;
+  }
+
+  return rules.filter((rule) => {
+    const haystack = getRuleSearchText(rule);
+    return tokens.every((token) => haystack.includes(token));
+  });
+};
+
+const setSearchQuery = (query) => {
+  state.searchQuery = query || "";
+  if (clearRuleSearchBtn) {
+    clearRuleSearchBtn.hidden = !normalizeSearchQuery(state.searchQuery);
+  }
 };
 
 const openDetailPanel = () => {
@@ -65,10 +103,17 @@ const closeDetailPanel = () => {
 };
 
 const fetchRules = async () => {
-  // 注意：规则本身根据设置的存储方式获取，但存储方式设置始终在local中
-  const stored = await chrome.storage.local.get({ [RULES_KEY]: [] });
-  state.rules = normalizeRules(stored[RULES_KEY]);
-  return state.rules;
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: "GET_ALL_RULES" }, (response) => {
+      if (response && response.success) {
+        state.rules = normalizeRules(response.rules);
+      } else {
+        console.warn("Failed to fetch rules:", response?.error);
+        state.rules = [];
+      }
+      resolve(state.rules);
+    });
+  });
 };
 
 const persistRules = async () => {
@@ -502,7 +547,9 @@ const handleImport = async (file) => {
 const renderRuleTable = () => {
   ruleTableBody.innerHTML = "";
 
-  state.rules.forEach((rule) => {
+  const filteredRules = filterRules(state.rules, state.searchQuery);
+
+  filteredRules.forEach((rule) => {
     const row = document.createElement("tr");
 
     const nameCell = document.createElement("td");
@@ -536,8 +583,25 @@ const renderRuleTable = () => {
     ruleTableBody.appendChild(row);
   });
 
-  emptyStateEl.style.display = state.rules.length ? "none" : "block";
-  ruleCountEl.textContent = `共 ${state.rules.length} 条`;
+  const totalCount = state.rules.length;
+  const filteredCount = filteredRules.length;
+  const hasSearch = !!normalizeSearchQuery(state.searchQuery);
+  emptyStateEl.style.display = filteredCount ? "none" : "block";
+  if (emptyStateEl) {
+    const message =
+      totalCount === 0
+        ? "暂无规则，请使用右侧表单创建"
+        : hasSearch
+          ? "没有匹配的规则"
+          : "暂无规则，请使用右侧表单创建";
+    const paragraph = emptyStateEl.querySelector("p");
+    if (paragraph) {
+      paragraph.textContent = message;
+    }
+  }
+  ruleCountEl.textContent = hasSearch
+    ? `共 ${totalCount} 条（匹配 ${filteredCount} 条）`
+    : `共 ${totalCount} 条`;
 };
 
 const handleTableClick = async (event) => {
@@ -572,6 +636,9 @@ const handleTableClick = async (event) => {
 
 const init = async () => {
   await fetchRules();
+  if (ruleSearchInput) {
+    setSearchQuery(ruleSearchInput.value);
+  }
   renderRuleTable();
   resetForm();
   closeDetailPanel();
@@ -734,6 +801,29 @@ if (cancelEditBtn) {
   cancelEditBtn.addEventListener("click", () => {
     resetForm();
     closeDetailPanel();
+  });
+}
+if (ruleSearchInput) {
+  ruleSearchInput.addEventListener("input", (event) => {
+    setSearchQuery(event.target.value);
+    renderRuleTable();
+  });
+  ruleSearchInput.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      ruleSearchInput.value = "";
+      setSearchQuery("");
+      renderRuleTable();
+    }
+  });
+}
+if (clearRuleSearchBtn) {
+  clearRuleSearchBtn.addEventListener("click", () => {
+    if (ruleSearchInput) {
+      ruleSearchInput.value = "";
+      ruleSearchInput.focus();
+    }
+    setSearchQuery("");
+    renderRuleTable();
   });
 }
 if (openCreateBtn) {
